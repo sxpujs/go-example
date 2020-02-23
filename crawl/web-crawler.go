@@ -12,8 +12,8 @@ type Fetcher interface {
 }
 
 var fetched = struct {
-	m   map[string]error
-	mux sync.Mutex
+	m map[string]error
+	sync.Mutex
 }{m: map[string]error{}}
 
 // Crawl uses fetcher to recursively crawl
@@ -22,29 +22,30 @@ func Crawl(url string, depth int, fetcher Fetcher) {
 	if _, ok := fetched.m[url]; ok || depth <= 0 {
 		return
 	}
-	fetched.mux.Lock()
 	body, urls, err := fetcher.Fetch(url)
+
+	fetched.Lock()
 	fetched.m[url] = err
-	fetched.mux.Unlock()
+	fetched.Unlock()
+
 	if err != nil {
-		fmt.Println(err)
 		return
 	}
-	fmt.Printf("found: %s %q\n", url, body)
-	var wg sync.WaitGroup
+	fmt.Printf("Found: %s %q\n", url, body)
+	wg := &sync.WaitGroup{}
 	for _, u := range urls {
 		wg.Add(1)
-		func(url string) {
-			defer wg.Done()
-			Crawl(u, depth-1, fetcher)
-		}(u)
+		go func(wg *sync.WaitGroup, url string) {
+			Crawl(url, depth-1, fetcher)
+			wg.Done()
+		}(wg, u)
 	}
 	wg.Wait()
-	return
 }
 
 func main() {
 	Crawl("http://golang.org/", 4, fetcher)
+	//time.Sleep(time.Second * 10)
 	for k, v := range fetched.m {
 		if v == nil {
 			fmt.Printf("existing url: %v\n", k)

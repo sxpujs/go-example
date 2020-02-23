@@ -22,10 +22,10 @@ func Crawl(url string, depth int, fetcher Fetcher) {
 	if _, ok := fetched.m[url]; ok || depth <= 0 {
 		return
 	}
-	//fetched.mux.Lock()
+	fetched.mux.Lock()
 	body, urls, err := fetcher.Fetch(url)
 	fetched.m[url] = err
-	//fetched.mux.Unlock()
+	fetched.mux.Unlock()
 	if err != nil {
 		fmt.Println(err)
 		return
@@ -33,13 +33,11 @@ func Crawl(url string, depth int, fetcher Fetcher) {
 	fmt.Printf("found: %s %q\n", url, body)
 	var wg sync.WaitGroup
 	for _, u := range urls {
-		//fmt.Println("walk u=", u)
 		wg.Add(1)
-		func() {
+		func(url string) {
 			defer wg.Done()
 			Crawl(u, depth-1, fetcher)
-		}()
-		//go Crawl(u, depth-1, fetcher)
+		}(u)
 	}
 	wg.Wait()
 	return

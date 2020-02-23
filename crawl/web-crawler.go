@@ -32,20 +32,19 @@ func Crawl(url string, depth int, fetcher Fetcher) {
 		return
 	}
 	fmt.Printf("Found: %s %q\n", url, body)
-	wg := &sync.WaitGroup{}
+	var wg sync.WaitGroup
 	for _, u := range urls {
 		wg.Add(1)
-		go func(wg *sync.WaitGroup, url string) {
+		go func(url string) {
+			defer wg.Done()
 			Crawl(url, depth-1, fetcher)
-			wg.Done()
-		}(wg, u)
+		}(u)
 	}
 	wg.Wait()
 }
 
 func main() {
 	Crawl("http://golang.org/", 4, fetcher)
-	//time.Sleep(time.Second * 10)
 	for k, v := range fetched.m {
 		if v == nil {
 			fmt.Printf("existing url: %v\n", k)

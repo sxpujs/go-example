@@ -10,7 +10,7 @@ func main() {
 	ch := make(chan bool)
 
 	go func() {
-		time.Sleep(time.Millisecond * 500)
+		time.Sleep(time.Second * 2)
 		fmt.Println("hello")
 		ch <- true
 	}()

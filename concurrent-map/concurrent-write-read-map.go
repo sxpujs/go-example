@@ -3,34 +3,45 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"math/rand"
 	"strconv"
+	"sync"
+	"time"
 )
 
 func main() {
 
-	m := map[string]string{
+	param := map[string]string{
 		"name": "andy",
 		"age":  "30",
 	}
 
-	write := make(chan bool)
-	go func() {
-		for i := 0; i < 10000; i++ {
-			m["idx"] = strconv.Itoa(i)
-		}
-		write <- true
-	}()
+	f := func(i int) {
+		tempMap := param
+		//tempMap := DeepCopyMap(m) // 使用深度拷贝可以解决并发读写map的问题
+		tempMap["idx"] = strconv.Itoa(i)
+		time.Sleep(time.Millisecond * time.Duration(rand.Intn(10)))
+		json.Marshal(tempMap)
+	}
 
-	read := make(chan bool)
-	go func() {
-		for i := 0; i < 10000; i++ {
-			json.Marshal(m)
-		}
-		read <- true
-	}()
-
-	<-write
-	<-read
+	var wg sync.WaitGroup
+	for i := 0; i < 1000; i++ {
+		wg.Add(1)
+		go func(idx int) {
+			defer wg.Done()
+			f(idx)
+		}(i)
+	}
+	wg.Wait()
 
 	fmt.Println("Finish")
+}
+
+// DeepCopyMap map[string]string 类型实现深拷贝
+func DeepCopyMap(params map[string]string) map[string]string {
+	result := map[string]string{}
+	for k, v := range params {
+		result[k] = v
+	}
+	return result
 }
